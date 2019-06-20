@@ -1,0 +1,7 @@
+C:\Users\lime_\Documents\Planetarium\Kademlia\Kademlia\bin\Debug\Kademlia.exe.config
+C:\Users\lime_\Documents\Planetarium\Kademlia\Kademlia\bin\Debug\Kademlia.exe
+C:\Users\lime_\Documents\Planetarium\Kademlia\Kademlia\bin\Debug\Kademlia.pdb
+C:\Users\lime_\Documents\Planetarium\Kademlia\Kademlia\obj\Debug\Kademlia.csprojAssemblyReference.cache
+C:\Users\lime_\Documents\Planetarium\Kademlia\Kademlia\obj\Debug\Kademlia.csproj.CoreCompileInputs.cache
+C:\Users\lime_\Documents\Planetarium\Kademlia\Kademlia\obj\Debug\Kademlia.exe
+C:\Users\lime_\Documents\Planetarium\Kademlia\Kademlia\obj\Debug\Kademlia.pdb

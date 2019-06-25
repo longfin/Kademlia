@@ -14,12 +14,15 @@ namespace Kademlia
 		static private List<KademliaNode> _kademliaNodes;
 		static private long tnormal, tkademlia;
 		static private int utotalN, utotalK, dtotalN, dtotalK, muploadsN, muploadsK, mdownloadsN, mdownloadsK;
+		static private Random r;
 		static void Main(string[] args)
 		{
-			int NODECOUNT = 1 << 8;
+			int NODECOUNT = 1 << 6;
 
 			_normalNodes = new List<NormalNode>();
 			_kademliaNodes = new List<KademliaNode>();
+
+			r = new Random();
 
 			for (int i = 0; i < NODECOUNT; i++)
 			{
@@ -30,7 +33,11 @@ namespace Kademlia
 			PingAllKademliaNodes(NODECOUNT);
 
 
-			//HaltRandomNode(NODECOUNT, haltCount: 15, trace: true);
+			for (int i = 0; i < 200; i++)
+			{
+				HaltRandomNode(NODECOUNT, haltCount: 1, trace: true);
+			}
+			//CloseRandomNode(NODECOUNT, closeCount: 2000, trace: false);
 
 			SendOneBroadCast(NODECOUNT, trace: true);
 			//SendMultipleBroadCasts(NODECOUNT, 2000);
@@ -57,13 +64,12 @@ namespace Kademlia
 		{
 			Console.WriteLine("***SendOneBroadCast***");
 
-			Random r = new Random();
-			int randNum = target == -1 ? (int)(size * r.NextDouble()) : target;
+			int randNum = target == -1 ? r.Next(size) : target;
 			int tries;
 			for (tries = 0; target == -1 & tries < MAX_TRIES; tries++)
 			{
 				if (!_kademliaNodes[randNum].Respond())
-					randNum = (int)(size * r.NextDouble());
+					randNum = r.Next(size);
 				else
 					break;
 			}
@@ -104,12 +110,11 @@ namespace Kademlia
 		static public void SendMultipleBroadCasts(int size, int sendCount, bool trace = false)
 		{
 			Console.WriteLine("***SendMultipleBroadCasts***");
-			Random r = new Random();
 			Stopwatch sw = Stopwatch.StartNew();
 			long elapsedTime = sw.ElapsedTicks;
 			for (int i = 0; i < sendCount; i++)
 			{
-				int randNum = (int)(size * r.NextDouble());
+				int randNum = r.Next(size);
 				if (trace) Console.WriteLine("Broadcasting to index " + randNum);
 				_normalNodes[randNum].BroadCast("msg");
 				elapsedTime = sw.ElapsedTicks - elapsedTime;
@@ -242,12 +247,27 @@ namespace Kademlia
 			return success;
 		}
 
+		static public void CloseRandomNode(int size, int closeCount = 1, bool trace = false)
+		{
+			for (int i = 0; i < closeCount; i++)
+			{
+				int randNum = r.Next(size);
+				if (!_kademliaNodes[randNum].Respond())
+				{
+					if (trace) Console.WriteLine("Node at {0} already closed", randNum);
+					continue;
+				}
+
+				if (trace) Console.WriteLine("Closed node of index " + randNum);
+				_kademliaNodes[randNum].Close();
+			}
+		}
+
 		static public void HaltRandomNode(int size, int haltCount = 1, bool trace = false)
 		{
-			Random r = new Random(new Random().Next());
 			for (int i = 0; i < haltCount; i++)
 			{
-				int randNum = (int)(size * r.NextDouble());
+				int randNum = r.Next(size);
 				if (!_kademliaNodes[randNum].Respond())
 				{
 					if (trace) Console.WriteLine("Node at {0} already halted", randNum);
@@ -258,14 +278,14 @@ namespace Kademlia
 				_kademliaNodes[randNum].Halt();
 			}
 
-			for(int i = 0; i < 1; i++) PingAllKademliaNodes(size);
+			for (int i = 0; i < 1; i++) PingAllKademliaNodes(size);
 		}
 
 		public static void PingAllKademliaNodes(int size)
 		{
 			for (int i = 0; i < size; i++)
 			{
-				_kademliaNodes[i].BroadCastPing();
+				_kademliaNodes[i].PingAll();
 			}
 		}
 	}

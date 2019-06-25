@@ -76,5 +76,9 @@ namespace Kademlia
 		{
 			_alive = false;
 		}
+
+		public virtual void Close()
+		{
+		}
 	}
 }

@@ -8,7 +8,7 @@ namespace Kademlia
 {
 	class Bucket
 	{
-		public const int BucketSize = 8;
+		public const int BucketSize = 16;
 		public List<KademliaNode> _contents { get; private set; }
 
 		public Bucket()

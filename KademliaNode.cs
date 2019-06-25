@@ -45,6 +45,63 @@ namespace Kademlia
 			_table[plength].Add(node);
 		}
 
+		public override void Close()
+		{
+			List<KademliaNode> nodes = new List<KademliaNode>();
+			foreach (Bucket bucket in _table)
+			{
+				foreach (KademliaNode node in bucket._contents)
+					nodes.Add(node);
+			}
+
+			BroadCastClose(this, nodes, 0);
+			_alive = false;
+		}
+
+		private List<KademliaNode> GetAllNodes(KademliaNode remote, int prefixLength)
+		{
+			List<KademliaNode> nodes = new List<KademliaNode>();
+			nodes.Add(this);
+
+			KademliaNode target;
+			for (int i = prefixLength; i < k_TableSize; i++)
+			{
+				target = _table[i].GetRandomNode();
+				if (target == null)
+					continue;
+				nodes.AddRange(target.GetAllNodes(remote, i + 1));
+			}
+
+			Update(remote);
+
+			return nodes;
+		}
+
+		private void BroadCastClose(KademliaNode close, List<KademliaNode> nodes, int prefixLength)
+		{
+			if (!_alive)
+				return;
+
+			if (this != close)
+			{
+				int plength = CommonPrefixLength(_id, close._id);
+				_table[plength].Remove(close);
+
+				foreach (KademliaNode node in nodes)
+					Update(node);
+			}
+
+			KademliaNode target;
+			for (int i = prefixLength; i < k_TableSize; i++)
+			{
+				target = _table[i].GetRandomNode();
+				if (target == null)
+					continue;
+
+				target.BroadCastClose(close, nodes, i + 1);
+			}
+		}
+
 		public void RemoveNode(KademliaNode node)
 		{
 			int plength = CommonPrefixLength(_id, node.GetId());
@@ -65,7 +122,7 @@ namespace Kademlia
 			return length;
 		}
 
-		public void PingAll()
+		public void PingToTable()
 		{
 			List<KademliaNode> nodes = new List<KademliaNode>();
 			foreach (Bucket bucket in _table)
@@ -78,12 +135,12 @@ namespace Kademlia
 				node.Ping(this);
 		}
 
-		public void BroadCastPing()
+		public void PingAll()
 		{
-			DoBroadCastPing(this, 0);
+			BroadCastPing(this, 0);
 		}
 
-		private void DoBroadCastPing(KademliaNode remote, int prefixLength)
+		private void BroadCastPing(KademliaNode remote, int prefixLength)
 		{
 			if (!_alive)
 				return;
@@ -92,10 +149,10 @@ namespace Kademlia
 			for (int i = prefixLength; i < k_TableSize; i++)
 			{
 				target = _table[i].GetRandomNode();
-				if (target == null)
+				if (target == null || target == remote)
 					continue;
+				target.BroadCastPing(this, i + 1);
 				target.Ping(remote);
-				target.DoBroadCastPing(remote, i + 1);
 			}
 		}
 
@@ -148,7 +205,7 @@ namespace Kademlia
 
 		private List<KademliaNode> FindNeighbours(int target_id, int k = Bucket.BucketSize)
 		{
-			// return closest k * 2 nodes
+			// return k * 2 closest nodes
 			List<KademliaNode> sorted = SortTableByDistance(target_id);
 			List<KademliaNode> nodes = new List<KademliaNode>();
 			foreach (KademliaNode node in sorted)
@@ -160,6 +217,7 @@ namespace Kademlia
 						break;
 				}
 			}
+
 			return nodes;
 		}
 
@@ -238,33 +296,18 @@ namespace Kademlia
 		{
 			_touched = true;
 			_log.Add("Broadcast message " + '"' + msg + '"');
-			Transfer(msg, 0);
+			Transfer(this, msg, 0);
 			return false;
 		}
 
-		private List<KademliaNode> GetAllNodes(KademliaNode remote, int prefixLength)
-		{
-			List<KademliaNode> nodes = new List<KademliaNode>();
-			nodes.Add(this);
-
-			KademliaNode target;
-			for (int i = prefixLength; i < k_TableSize; i++)
-			{
-				target = _table[i].GetRandomNode();
-				if (target == null)
-					continue;
-				nodes.AddRange(target.GetAllNodes(remote, i + 1));
-			}
-
-			Update(remote);
-
-			return nodes;
-		}
-
-		private void Transfer(string msg, int prefixLength)
+		private void Transfer(KademliaNode remote, string msg, int prefixLength)
 		{
 			if (!_alive)
 				return;
+
+			if(this != remote)
+				Update(remote);
+
 			if (prefixLength != 0)
 			{
 				_touched = true;
@@ -280,7 +323,7 @@ namespace Kademlia
 					continue;
 				_log.Add("Transfer " + '"' + msg + '"' + " to Node " + target.GetId());
 				_uploads++;
-				target.Transfer(msg, i + 1);
+				target.Transfer(this, msg, i + 1);
 			}
 
 		}

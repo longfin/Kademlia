@@ -6,12 +6,13 @@ using System.Threading.Tasks;
 
 namespace Kademlia
 {
-	class Node
+	public class Node
 	{
 		protected int _id;
 		protected bool _touched;
 		protected int _uploads;
 		protected int _downloads;
+		protected bool _alive;
 		protected List<string> _log;
 
 		public Node(int id)
@@ -20,6 +21,7 @@ namespace Kademlia
 			_downloads = 0;
 			_id = id;
 			_touched = false;
+			_alive = true;
 			_log = new List<string>();
 		}
 
@@ -64,6 +66,15 @@ namespace Kademlia
 		public bool Touched()
 		{
 			return _touched;
+		}
+		public bool Respond()
+		{
+			return _alive;
+		}
+
+		public void Halt()
+		{
+			_alive = false;
 		}
 	}
 }

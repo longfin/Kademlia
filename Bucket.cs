@@ -8,8 +8,8 @@ namespace Kademlia
 {
 	class Bucket
 	{
-		private const int k_SizeOfBucket = 8;
-		private List<KademliaNode> _contents;
+		public const int BucketSize = 8;
+		public List<KademliaNode> _contents { get; private set; }
 
 		public Bucket()
 		{
@@ -18,7 +18,15 @@ namespace Kademlia
 
 		public bool Add(KademliaNode node)
 		{
-			if (_contents.Count < k_SizeOfBucket)
+			if (_contents.Contains(node))
+			{
+				// move node to most recently used
+				_contents.Remove(node);
+				_contents.Add(node);
+				return false;
+			}
+
+			if (_contents.Count < BucketSize)
 			{
 				_contents.Add(node);
 				return true;
@@ -31,10 +39,18 @@ namespace Kademlia
 			}
 			else
 			{
-				// evict oldest node
-				_contents.Add(node);
+				// evict least recently used node 
 				_contents.RemoveAt(0);
+				_contents.Add(node);
 				return true;
+			}
+		}
+
+		public void Remove(KademliaNode node)
+		{
+			if (_contents.Contains(node))
+			{
+				_contents.Remove(node);
 			}
 		}
 

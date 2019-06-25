@@ -7,15 +7,16 @@ using System.Threading.Tasks;
 
 namespace Kademlia
 {
-	class Kademlia
+	public class Kademlia
 	{
+		private const int MAX_TRIES = 1 << 10;
 		static private List<NormalNode> _normalNodes;
 		static private List<KademliaNode> _kademliaNodes;
 		static private long tnormal, tkademlia;
 		static private int utotalN, utotalK, dtotalN, dtotalK, muploadsN, muploadsK, mdownloadsN, mdownloadsK;
 		static void Main(string[] args)
 		{
-			int NODECOUNT = 2 << 15;
+			int NODECOUNT = 1 << 8;
 
 			_normalNodes = new List<NormalNode>();
 			_kademliaNodes = new List<KademliaNode>();
@@ -26,9 +27,16 @@ namespace Kademlia
 				CreateKademliaNode(i);
 			}
 
-			SendOneBroadCast(NODECOUNT);
+			PingAllKademliaNodes(NODECOUNT);
+
+
+			//HaltRandomNode(NODECOUNT, haltCount: 15, trace: true);
+
+			SendOneBroadCast(NODECOUNT, trace: true);
 			//SendMultipleBroadCasts(NODECOUNT, 2000);
 			//SendAllBroadCasts(NODECOUNT);
+
+			//DisplayAllTable();
 
 			if (AllKademliaNodeTouched(true))
 				Console.WriteLine("All Kademlia node touched");
@@ -45,12 +53,28 @@ namespace Kademlia
 			Console.WriteLine("Maximum Downloads\t\t" + mdownloadsN + "\t\t" + mdownloadsK);
 		}
 
-		static public void SendOneBroadCast(int size, bool trace = false)
+		static public void SendOneBroadCast(int size, int target = -1, bool trace = false)
 		{
 			Console.WriteLine("***SendOneBroadCast***");
+
 			Random r = new Random();
-			int randNum = (int)(size * r.NextDouble());
-			if(trace) Console.WriteLine("Broadcasting to index " + randNum);
+			int randNum = target == -1 ? (int)(size * r.NextDouble()) : target;
+			int tries;
+			for (tries = 0; target == -1 & tries < MAX_TRIES; tries++)
+			{
+				if (!_kademliaNodes[randNum].Respond())
+					randNum = (int)(size * r.NextDouble());
+				else
+					break;
+			}
+
+			if (tries >= MAX_TRIES)
+			{
+				if (trace) Console.WriteLine("Broadcast failed... cannot find alive node.");
+				return;
+			}
+
+			if(trace) Console.WriteLine("Broadcasting to index {0} with {1} tries.", randNum, tries + 1);
 			Stopwatch sw = Stopwatch.StartNew();
 			_normalNodes[randNum].BroadCast("msg");
 			tnormal = sw.ElapsedTicks;
@@ -117,7 +141,6 @@ namespace Kademlia
 		static public void SendAllBroadCasts(int size, bool trace = false)
 		{
 			Console.WriteLine("***SendAllBroadCasts***");
-			Random r = new Random();
 			Stopwatch sw = Stopwatch.StartNew();
 			long elapsedTime = sw.ElapsedTicks;
 			for (int i = 0; i < size; i++)
@@ -173,11 +196,20 @@ namespace Kademlia
 					return false;
 			}
 
-			KademliaNode newNode = new KademliaNode(id, _kademliaNodes);
-			foreach (KademliaNode node in _kademliaNodes)
-				node.NewNode(newNode);
+			KademliaNode newNode = new KademliaNode(id);
+			if(id != 0)
+				newNode.Bootstrap(_kademliaNodes[0]);
 			_kademliaNodes.Add(newNode);
 			return true;
+		}
+
+		static public void DisplayAllTable()
+		{
+			foreach (KademliaNode node in _kademliaNodes)
+			{
+				Console.WriteLine("Node {0}", node.GetId());
+				Console.WriteLine(node.PrintTable());
+			}
 		}
 
 		static public bool AllKademliaNodeTouched(bool trace = false)
@@ -185,7 +217,7 @@ namespace Kademlia
 			bool success = true;
 			foreach (KademliaNode node in _kademliaNodes)
 			{
-				if (!node.Touched())
+				if (node.Respond() && !node.Touched())
 				{
 					if(trace) Console.WriteLine("Node of id " + node.GetId() + " is not touched");
 					success = false;
@@ -208,6 +240,33 @@ namespace Kademlia
 			}
 
 			return success;
+		}
+
+		static public void HaltRandomNode(int size, int haltCount = 1, bool trace = false)
+		{
+			Random r = new Random(new Random().Next());
+			for (int i = 0; i < haltCount; i++)
+			{
+				int randNum = (int)(size * r.NextDouble());
+				if (!_kademliaNodes[randNum].Respond())
+				{
+					if (trace) Console.WriteLine("Node at {0} already halted", randNum);
+					continue;
+				}
+
+				if (trace) Console.WriteLine("Halt node of index " + randNum);
+				_kademliaNodes[randNum].Halt();
+			}
+
+			for(int i = 0; i < 1; i++) PingAllKademliaNodes(size);
+		}
+
+		public static void PingAllKademliaNodes(int size)
+		{
+			for (int i = 0; i < size; i++)
+			{
+				_kademliaNodes[i].BroadCastPing();
+			}
 		}
 	}
 }

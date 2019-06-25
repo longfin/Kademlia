@@ -45,6 +45,7 @@
   <ItemGroup>
     <Compile Include="Bucket.cs" />
     <Compile Include="KademliaNode.cs" />
+    <None Include="KademliaNode_backup.cs" />
     <Compile Include="Kademlia.cs" />
     <Compile Include="Node.cs" />
     <Compile Include="NormalNode.cs" />

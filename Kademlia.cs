@@ -31,7 +31,10 @@ namespace Kademlia
 			tnormalbu = sw.ElapsedTicks - tnormalbu;
 			tkademliabu = sw.ElapsedTicks;
 			for (int i = 0; i < NODECOUNT; i++)
+			{
 				CreateKademliaNode(i);
+				_kademliaNodes[i].PingAll();
+			}
 			tkademliabu = sw.ElapsedTicks - tkademliabu;
 
 			//PingAllKademliaNodes(NODECOUNT);
@@ -43,10 +46,16 @@ namespace Kademlia
 			}*/
 			//CloseRandomNode(NODECOUNT, closeCount: 2000, trace: false);
 
-			_kademliaNodes[1023].PingAll();
+			/*_kademliaNodes[1023].PingAll();
+			_kademliaNodes[767].PingAll();
 			_kademliaNodes[511].PingAll();
+			_kademliaNodes[383].PingAll();
 			_kademliaNodes[255].PingAll();
-			SendOneBroadCast(NODECOUNT, target: 93, trace: true);
+			_kademliaNodes[127].PingAll();
+			_kademliaNodes[63].PingAll();
+			_kademliaNodes[31].PingAll();
+			_kademliaNodes[15].PingAll();*/
+			SendOneBroadCast(NODECOUNT, target: -1, trace: true);
 			//SendMultipleBroadCasts(NODECOUNT, 2000);
 			//SendAllBroadCasts(NODECOUNT);
 

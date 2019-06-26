@@ -10,9 +10,11 @@ namespace Kademlia
 	{
 		public const int BucketSize = 16;
 		public List<KademliaNode> _contents { get; private set; }
+		private Random _rand;
 
 		public Bucket()
 		{
+			_rand = new Random();
 			_contents = new List<KademliaNode>();
 		}
 
@@ -61,8 +63,7 @@ namespace Kademlia
 			if (size == 0)
 				return null;
 
-			Random r = new Random();
-			int index = (int)(r.NextDouble() * size);
+			int index = _rand.Next(size);
 			return _contents[index];
 		}
 	}

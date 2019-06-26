@@ -12,38 +12,46 @@ namespace Kademlia
 		private const int MAX_TRIES = 1 << 10;
 		static private List<NormalNode> _normalNodes;
 		static private List<KademliaNode> _kademliaNodes;
-		static private long tnormal, tkademlia;
+		static private long tnormalbu, tkademliabu, tnormalbr, tkademliabr;
 		static private int utotalN, utotalK, dtotalN, dtotalK, muploadsN, muploadsK, mdownloadsN, mdownloadsK;
 		static private Random r;
 		static void Main(string[] args)
 		{
-			int NODECOUNT = 1 << 6;
+			int NODECOUNT = 1 << 10;
 
 			_normalNodes = new List<NormalNode>();
 			_kademliaNodes = new List<KademliaNode>();
 
 			r = new Random();
 
+			Stopwatch sw = Stopwatch.StartNew();
+			tnormalbu = sw.ElapsedTicks;
 			for (int i = 0; i < NODECOUNT; i++)
-			{
 				CreateNormalNode(i);
+			tnormalbu = sw.ElapsedTicks - tnormalbu;
+			tkademliabu = sw.ElapsedTicks;
+			for (int i = 0; i < NODECOUNT; i++)
 				CreateKademliaNode(i);
-			}
+			tkademliabu = sw.ElapsedTicks - tkademliabu;
 
-			PingAllKademliaNodes(NODECOUNT);
+			//PingAllKademliaNodes(NODECOUNT);
 
 
-			for (int i = 0; i < 200; i++)
+			/*for (int i = 0; i < 200; i++)
 			{
 				HaltRandomNode(NODECOUNT, haltCount: 1, trace: true);
-			}
+			}*/
 			//CloseRandomNode(NODECOUNT, closeCount: 2000, trace: false);
 
-			SendOneBroadCast(NODECOUNT, trace: true);
+			_kademliaNodes[1023].PingAll();
+			_kademliaNodes[511].PingAll();
+			_kademliaNodes[255].PingAll();
+			SendOneBroadCast(NODECOUNT, target: 93, trace: true);
 			//SendMultipleBroadCasts(NODECOUNT, 2000);
 			//SendAllBroadCasts(NODECOUNT);
 
 			//DisplayAllTable();
+			//_kademliaNodes[51].PrintLog();
 
 			if (AllKademliaNodeTouched(true))
 				Console.WriteLine("All Kademlia node touched");
@@ -51,9 +59,13 @@ namespace Kademlia
 			if (AllNormalNodeTouched(true))
 				Console.WriteLine("All Normal node touched");
 
+			//_kademliaNodes[232].PrintLog();
+			//Console.WriteLine(_kademliaNodes[232].PrintTable());
+
 			Console.WriteLine("=============================STATISTICS=============================");
 			Console.WriteLine("\t\t\t\tNormal\t\tKademlia");
-			Console.WriteLine("Elapsed Ticks Per Broadcast\t" + tnormal + "\t\t" + tkademlia);
+			Console.WriteLine("Elapsed Ticks For Building\t" + tnormalbu + "\t\t" + tkademliabu);
+			Console.WriteLine("Elapsed Ticks Per Broadcast\t" + tnormalbr + "\t\t" + tkademliabr);
 			Console.WriteLine("Total Uploads\t\t\t" + utotalN + "\t\t" + utotalK);
 			Console.WriteLine("Total Downloads\t\t\t" + dtotalN + "\t\t" + dtotalK);
 			Console.WriteLine("Maximum Uploads\t\t\t" + muploadsN + "\t\t" + muploadsK);
@@ -83,9 +95,9 @@ namespace Kademlia
 			if(trace) Console.WriteLine("Broadcasting to index {0} with {1} tries.", randNum, tries + 1);
 			Stopwatch sw = Stopwatch.StartNew();
 			_normalNodes[randNum].BroadCast("msg");
-			tnormal = sw.ElapsedTicks;
+			tnormalbr = sw.ElapsedTicks;
 			_kademliaNodes[randNum].BroadCast("msg");
-			tkademlia = sw.ElapsedTicks - tnormal;
+			tkademliabr = sw.ElapsedTicks - tnormalbr;
 
 			utotalN = utotalK = dtotalN = dtotalK = muploadsN = muploadsK = mdownloadsN = mdownloadsK = 0;
 			for (int i = 0; i < size; i++)
@@ -118,10 +130,10 @@ namespace Kademlia
 				if (trace) Console.WriteLine("Broadcasting to index " + randNum);
 				_normalNodes[randNum].BroadCast("msg");
 				elapsedTime = sw.ElapsedTicks - elapsedTime;
-				tnormal = elapsedTime > tnormal ? elapsedTime : tnormal;
+				tnormalbr = elapsedTime > tnormalbr ? elapsedTime : tnormalbr;
 				_kademliaNodes[randNum].BroadCast("msg");
 				elapsedTime = sw.ElapsedTicks - elapsedTime;
-				tkademlia = elapsedTime > tkademlia ? elapsedTime : tkademlia;
+				tkademliabr = elapsedTime > tkademliabr ? elapsedTime : tkademliabr;
 			}
 
 			utotalN = utotalK = dtotalN = dtotalK = muploadsN = muploadsK = mdownloadsN = mdownloadsK = 0;
@@ -153,10 +165,10 @@ namespace Kademlia
 				if (trace) Console.WriteLine("Broadcasting to index " + i);
 				_normalNodes[i].BroadCast("msg");
 				elapsedTime = sw.ElapsedTicks - elapsedTime;
-				tnormal = elapsedTime > tnormal ? elapsedTime : tnormal;
+				tnormalbr = elapsedTime > tnormalbr ? elapsedTime : tnormalbr;
 				_kademliaNodes[i].BroadCast("msg");
 				elapsedTime = sw.ElapsedTicks - elapsedTime;
-				tkademlia = elapsedTime > tkademlia ? elapsedTime : tkademlia;
+				tkademliabr = elapsedTime > tkademliabr ? elapsedTime : tkademliabr;
 			}
 
 			utotalN = utotalK = dtotalN = dtotalK = muploadsN = muploadsK = mdownloadsN = mdownloadsK = 0;

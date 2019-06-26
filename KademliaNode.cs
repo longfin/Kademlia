@@ -27,15 +27,8 @@ namespace Kademlia
 			if (bootstrapNode is null)
 				return;
 
-			// This implementation will get information of all nodes
-			// on the network
 			Update(bootstrapNode);
-			foreach (KademliaNode node in bootstrapNode.GetAllNodes(this, 0))
-				Update(node);
-
-			// Implementation in this comment is the one in the
-			// formal Kademlia
-			//FindNode(_id, bootstrapNode);
+			FindNode(_id, bootstrapNode);
 		}
 
 		public void Update(KademliaNode node)
@@ -56,25 +49,6 @@ namespace Kademlia
 
 			BroadCastClose(this, nodes, 0);
 			_alive = false;
-		}
-
-		private List<KademliaNode> GetAllNodes(KademliaNode remote, int prefixLength)
-		{
-			List<KademliaNode> nodes = new List<KademliaNode>();
-			nodes.Add(this);
-
-			KademliaNode target;
-			for (int i = prefixLength; i < k_TableSize; i++)
-			{
-				target = _table[i].GetRandomNode();
-				if (target == null)
-					continue;
-				nodes.AddRange(target.GetAllNodes(remote, i + 1));
-			}
-
-			Update(remote);
-
-			return nodes;
 		}
 
 		private void BroadCastClose(KademliaNode close, List<KademliaNode> nodes, int prefixLength)
@@ -108,6 +82,7 @@ namespace Kademlia
 			_table[plength].Remove(node);
 		}
 
+		// Returns length of common prefix length (0~32).
 		private static int CommonPrefixLength(int sourceId, int destId)
 		{
 			int xor = sourceId ^ destId;
@@ -120,19 +95,6 @@ namespace Kademlia
 			}
 
 			return length;
-		}
-
-		public void PingToTable()
-		{
-			List<KademliaNode> nodes = new List<KademliaNode>();
-			foreach (Bucket bucket in _table)
-			{
-				foreach (KademliaNode node in bucket._contents)
-					nodes.Add(node);
-			}
-
-			foreach (KademliaNode node in nodes)
-				node.Ping(this);
 		}
 
 		public void PingAll()
@@ -151,7 +113,7 @@ namespace Kademlia
 				target = _table[i].GetRandomNode();
 				if (target == null || target == remote)
 					continue;
-				target.BroadCastPing(this, i + 1);
+				target.BroadCastPing(remote, i + 1);
 				target.Ping(remote);
 			}
 		}
@@ -235,19 +197,15 @@ namespace Kademlia
 
 			if (_find_request != -1)
 			{
-				nodes = SortByDistance(nodes, _id);
-
-				foreach (KademliaNode node in nodes)
-				{
-					if (node != this)
-						node.Ping(this);
-				}
+				nodes = SortByDistance(nodes, _find_request);
 
 				List<KademliaNode> closest_candidate = FindNeighbours(_find_request);
+				foreach (KademliaNode node in nodes)
+					node.Ping(this);
 				KademliaNode closest_known = closest_candidate.Count == 0 ? null : closest_candidate[0];
 				for (int i = 0; i < k_FindConcurrency && i < nodes.Count; i++)
 				{
-					if (closest_known != null && CommonPrefixLength(nodes[i]._id, _find_request) > CommonPrefixLength(closest_known._id, _find_request))
+					if (closest_known is null || (nodes[i]._id ^ _find_request) < (closest_known._id ^ _find_request))
 						nodes[i].SendFindNode(this, _find_request);
 				}
 			}
@@ -279,7 +237,7 @@ namespace Kademlia
 			nodes = SortByDistance(nodes, target_id);
 			for (int i = 1; i < nodes.Count; i++)
 			{
-				if (CommonPrefixLength(nodes[i - 1]._id, target_id) < CommonPrefixLength(nodes[i]._id, target_id))
+				if ((nodes[i - 1]._id ^ target_id) > (nodes[i]._id ^ target_id))
 					throw new Exception("Sorting not correct");
 			}
 			return nodes;
@@ -288,9 +246,8 @@ namespace Kademlia
 		private static List<KademliaNode> SortByDistance(List<KademliaNode> nodes, int target_id)
 		{
 			// sort list from closest to farthest
-			return nodes.OrderBy(node => (32 - CommonPrefixLength(node._id, target_id))).ToList();
+			return nodes.OrderBy(node => node._id ^ target_id).ToList();
 		}
-
 
 		public override bool BroadCast(string msg)
 		{
